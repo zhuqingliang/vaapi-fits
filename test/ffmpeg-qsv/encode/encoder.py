@@ -22,7 +22,7 @@ class EncoderTest(slash.Test):
     return opts.format(**vars(self))
 
   def gen_output_opts(self):
-    opts = "-vf 'format={hwformat},hwupload=extra_hw_frames=64' -an"
+    opts = "-vf 'format={hwformat},hwupload=extra_hw_frames=120' -an"
     opts += " -c:v {ffencoder}"
 
     if self.codec not in ["jpeg",]:
@@ -52,6 +52,10 @@ class EncoderTest(slash.Test):
       opts += " -refs {refs}"
     if vars(self).get("lowpower", None) is not None:
       opts += " -low_power {lowpower}"
+    if vars(self).get("lookahead", None) is not None:
+      opts += " -look_ahead {lookahead}"
+    if vars(self).get("lookaheaddepth", None) is not None:
+      opts += " -look_ahead_depth {lookaheaddepth}"
 
     opts += " -vframes {frames} -y {encoded}"
 
@@ -79,6 +83,9 @@ class EncoderTest(slash.Test):
       name += "-{refs}"
     if vars(self).get("lowpower", None) is not None:
       name += "-{lowpower}"
+    if vars(self).get("lookahead", None) is not None:
+      if vars(self).get("lookaheaddepth", None) is not None:
+        name += "-{lookaheaddepth}"
 
     return name.format(**vars(self))
 
@@ -111,6 +118,10 @@ class EncoderTest(slash.Test):
   def check_output(self):
     m = re.search("Initialize MFX session", self.output, re.MULTILINE)
     assert m is not None, "It appears that the QSV plugin did not load"
+
+    if vars(self).get("lookahead", None) == 1:
+      m = re.search("Using the VBR with lookahead \(LA\) ratecontrol method", self.output, re.MULTILINE)
+      assert m is not None, "It appears that the lookahead did not load"
 
   def check_metrics(self):
     self.decoded = get_media()._test_artifact(
