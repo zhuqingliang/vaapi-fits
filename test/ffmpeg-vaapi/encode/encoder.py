@@ -62,6 +62,9 @@ class EncoderTest(slash.Test):
       opts += " -loop_filter_sharpness {loopshp}"
     if vars(self).get("looplvl", None) is not None:
       opts += " -loop_filter_level {looplvl}"
+    if vars(self).get("level", None) is not None:
+      self.level /= 10.0
+      opts += " -level {level}"
 
     opts += " -vframes {frames} -y {encoded}"
 
@@ -97,6 +100,8 @@ class EncoderTest(slash.Test):
       name += "-{looplvl}"
     if vars(self).get("r2r", None) is not None:
       name += "-r2r"
+    if vars(self).get("level", None) is not None:
+      name += "-{level}"
 
     return name
 
@@ -215,6 +220,9 @@ class EncoderTest(slash.Test):
     m = re.search(ipbmsgs[ipbmode], self.output, re.MULTILINE)
     assert m is not None, "Possible incorrect IPB mode used"
 
+    if vars(self).get("level", None) is not None:
+      self.check_level()
+
   def check_metrics(self):
     iopts = "-i {encoded}"
     oopts = (
@@ -256,3 +264,12 @@ class EncoderTest(slash.Test):
 
       # acceptable bitrate within 25% of minrate and 10% of maxrate
       assert(self.minrate * 0.75 <= bitrate_actual <= self.maxrate * 1.10)
+
+  def check_level(self):
+    output = call(
+      "ffmpeg -i {encoded} -vframes 1 -c:v copy -an"
+      " -bsf:v trace_headers -f null -".format(**vars(self)))
+    m = re.findall(
+      r"level_idc.*\s(\d+)\s*$", output, re.MULTILINE)
+    assert len(m) > 0, "fail to get level number"
+    assert float(m[0])/30 == self.level, "fail to set target level"

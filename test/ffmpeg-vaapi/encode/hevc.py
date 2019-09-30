@@ -10,6 +10,7 @@ from .encoder import EncoderTest
 
 spec      = load_test_spec("hevc", "encode", "8bit")
 spec_r2r  = load_test_spec("hevc", "encode", "8bit", "r2r")
+spec_level = load_test_spec("hevc", "encode", "8bit", "level")
 
 class HEVC8EncoderTest(EncoderTest):
   def before(self):
@@ -89,7 +90,7 @@ class cqp_lp(HEVC8EncoderTest):
     self.encode()
 
 class cbr(HEVC8EncoderTest):
-  def init(self, tspec, case, gop, slices, bframes, bitrate, fps, profile):
+  def init(self, tspec, case, gop, slices, bframes, bitrate, fps, profile, level=None):
     self.caps = platform.get_caps("encode", "hevc_8")
     vars(self).update(tspec[case].copy())
     vars(self).update(
@@ -103,6 +104,7 @@ class cbr(HEVC8EncoderTest):
       profile = profile,
       rcmode  = "cbr",
       slices  = slices,
+      level   = level,
     )
 
   @slash.requires(*platform.have_caps("encode", "hevc_8"))
@@ -118,6 +120,13 @@ class cbr(HEVC8EncoderTest):
   def test_r2r(self, case, gop, slices, bframes, bitrate, fps, profile):
     self.init(spec_r2r, case, gop, slices, bframes, bitrate, fps, profile)
     vars(self).setdefault("r2r", 5)
+    self.encode()
+
+  @slash.requires(*platform.have_caps("encode", "hevc_8"))
+  @slash.requires(*have_ffmpeg_encoder("hevc_vaapi"))
+  @slash.parametrize(*gen_hevc_cbr_level_parameters(spec_level, ['main']))
+  def test_level(self, case, gop, slices, bframes, bitrate, fps, profile, level):
+    self.init(spec_level, case, gop, slices, bframes, bitrate, fps, profile, level)
     self.encode()
 
 class cbr_lp(HEVC8EncoderTest):
